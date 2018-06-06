@@ -18,12 +18,12 @@ $script->startup();
 
 $options = $script->getOptions(
     "[n|dry-run][no-php-verbosity][p|progress][ci:|class-id:]", [
+    'dry-run','no-php-verbosity','progress','class-id'], [
         'dry-run'          => "dry run mode",
         'no-php-verbosity' => "no php verbosity",
         'progress'         => "show progress",
-        'class-id'         => "specified class(es) - coma separated if several",
-    ]
-);
+        'class-id'         => "specified class(es) to update - coma separated if several. If none provided, all classes and objects will be processed",
+]);
 
 $script->initialize();
 
@@ -39,13 +39,15 @@ if ($options['no-php-verbosity']) {
     error_reporting(0);
 }
 
-$params = [];
+$params = [
+    'IgnoreVisibility' => true,
+];
+
 if ($options['class-id']) {
-    $params = [
+    $params = array_merge($params, [
         'ClassFilterType'  => 'include',
         'ClassFilterArray' => explode(',', $options['class-id']),
-        'IgnoreVisibility' => true,
-    ];
+    ]);
 }
 
 $nodeArray        = eZContentObjectTreeNode::subTreeByNodeID($params, 1);
@@ -60,7 +62,7 @@ if ($options['progress']) {
 
 $i = 0;
 foreach ($nodeArray as $node) {
-    $progress = $progressbar ? "\n\n" : "[" . ++$i . "/ $total] -";
+    $progress = $progressbar ? "\n\n" : "[" . ++$i . " / $total] -";
 
     $cli->output(
         "$progress processing '" . $node->attribute('name') .

@@ -45,17 +45,18 @@ database documentation on how to execute queries from a command-line clients
 4.) Now you can add the ezleafletlocation datatype like any other datatype when editing classes.
 
 5.) If you wish to quickly replace your current eZGmapLocation class and object attributes, you can run this script :
-``` extension/ezleafletlocation/bin/updateleafletfromgmaps.php ```
+``` extension/ezleafletlocation/bin/replacegmapswithleaflet.php ```
 
 **Backup your data before using it**
 
 Use (editing)
 ---------------
-1. Type in the address you want to find beneath the map.
-2. Click 'Find address'
+- Type in the address you want to find beneath the map.
+- Click 'Find address'
 or
 Type in longitude / latitude input
-3. Click 'Update Values' to grab the coordinates.
+- Click on "My current location" to geolocate yourself (https only)
+- Click 'Restore' to cancel modifications.
 
 Repeat to change.
 Unless you change the marker on the map, the address will be saved as you typed it.
