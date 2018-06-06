@@ -8,7 +8,3 @@ CREATE TABLE ezleafletlocation (
 );
 
 CREATE INDEX ezleaflet_latitude_longitude_key ON ezleafletlocation (latitude, longitude);
-
-
-INSERT INTO ezleafletlocation (contentobject_attribute_id, latitude, longitude)
-SELECT contentobject_attribute_id, latitude, longitude FROM ezgmaplocation;

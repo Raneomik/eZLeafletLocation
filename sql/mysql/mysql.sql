@@ -8,5 +8,3 @@ CREATE TABLE IF NOT EXISTS `ezleafletlocation` (
   KEY `latitude_longitude_key` ( `latitude`,`longitude` )
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
-INSERT INTO `ezleafletlocation`
-SELECT * FROM `ezgmaplocation`;
