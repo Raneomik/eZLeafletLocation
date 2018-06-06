@@ -61,7 +61,7 @@ Repeat to change.
 Unless you change the marker on the map, the address will be saved as you typed it.
 This address is searchable! (see bellow for filtering / sorting on coordinates as well)
 
-![ezLeafletDemo](https://j.gifs.com/59oOkA.gif)
+![ezLeafletDemo](https://j.gifs.com/vo6Eyn.gif)
 
 
 Use (fetching)
