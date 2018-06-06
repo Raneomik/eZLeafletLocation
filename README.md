@@ -25,13 +25,13 @@ eZ Publish installation.
 And update the autoload array by clicking "Regenerate autoload arrays for extensions"
 
 **Project configuration editing via BO interface is discouraged :**
-- in your "settings/override/site.ini.append.php" add this those lines :
+- in your "settings/override/site.ini.append.php" add those lines :
 ```
 ActiveExtensions[]=ezleafletlocation #under [ExtensionSettings]
 ...
 TranslationExtensions[]=ezleafletlocation #under [RegionalSettings]
 ```
-- clear caches
+- clear caches ("ini" mainly)
 - and run ```php bin/php/ezpgenerateautoloads.php```
 
 
@@ -60,6 +60,8 @@ Type in longitude / latitude input
 Repeat to change.
 Unless you change the marker on the map, the address will be saved as you typed it.
 This address is searchable! (see bellow for filtering / sorting on coordinates as well)
+
+![ezLeafletDemo](https://j.gifs.com/59oOkA.gif)
 
 
 Use (fetching)
