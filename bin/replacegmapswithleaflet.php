@@ -7,7 +7,7 @@ $endl = $cli->endlineString();
 
 $script = eZScript::instance([
         'description'    => "eZ Publish eZGmapLocation replacement with eZLeafletLocation script\n" .
-                            "Replaces class and object attributes",
+            "Replaces class and object attributes",
         'use-session'    => false,
         'use-modules'    => false,
         'use-extensions' => true,
@@ -19,10 +19,10 @@ $script->startup();
 $options = $script->getOptions(
     "[n|dry-run][no-php-verbosity][p|progress][ci:|class-id:]", [
     'dry-run','no-php-verbosity','progress','class-id'], [
-        'dry-run'          => "dry run mode",
-        'no-php-verbosity' => "no php verbosity",
-        'progress'         => "show progress",
-        'class-id'         => "specified class(es) to update - coma separated if several. If none provided, all classes and objects will be processed",
+    'dry-run'          => "dry run mode",
+    'no-php-verbosity' => "no php verbosity",
+    'progress'         => "show progress",
+    'class-id'         => "specified class(es) to update - coma separated if several. If none provided, all classes and objects will be processed",
 ]);
 
 $script->initialize();
@@ -70,9 +70,9 @@ foreach ($nodeArray as $node) {
         $node->attribute('node_id') . ")"
     );
 
-    if (! $dryRun) {
-        processClass($node, $processedClasses);
-        processNode($node);
+    if(!$dryRun){
+        processClass($node, $processedClasses, $dryRun, $cli);
+        processNode($node, $dryRun, $cli);
     } else {
         usleep(10000);
     }
@@ -98,9 +98,11 @@ $script->shutdown();
 /**
  * @param eZContentObjectTreeNode $node
  * @param $processedClasses
+ * @param $dryRun
+ * @param $cli
  * @return null
  */
-function processClass(eZContentObjectTreeNode $node, &$processedClasses)
+function processClass(eZContentObjectTreeNode $node, &$processedClasses, $dryRun, eZCLI $cli)
 {
     $class_id = $node->attribute('class_identifier');
     if (! in_array($class_id, $processedClasses)) {
@@ -110,9 +112,19 @@ function processClass(eZContentObjectTreeNode $node, &$processedClasses)
         /** @var eZContentClassAttribute $attribute */
         foreach ($class->fetchAttributes() as $attribute) {
             if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
-                $attribute->setAttribute('data_type_string', 'ezleafletlocation');
-                $attribute->sync();
+                $cli->style('notice');
+                $cli->output( $attribute->attribute('name') . " [$class_id] has 'ezgmaplocation' attr.. Processing change..." );
+                $cli->style('notice-end');
+
+                if(! $dryRun){
+                    $attribute->setAttribute('data_type_string', 'ezleafletlocation');
+                    $attribute->sync();
+                }
             }
+        }
+        if (! $dryRun) {
+            $cli->notice('Clearing cache...');
+            eZCache::clearAll();
         }
         $processedClasses[] = $class_id;
     }
@@ -121,16 +133,31 @@ function processClass(eZContentObjectTreeNode $node, &$processedClasses)
 
 /**
  * @param eZContentObjectTreeNode $node objectT
+ * @param $dryRun
+ * @param $cli
  */
-function processNode(eZContentObjectTreeNode $node)
+function processNode(eZContentObjectTreeNode $node, $dryRun, eZCLI $cli)
 {
     /** @var eZContentObjectAttribute $attribute */
     foreach ($node->dataMap() as $attribute) {
         if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
-            $attributeContent = $attribute->content();
-            $attribute->setAttribute('data_type_string', 'ezleafletlocation');
-            $attribute->setContent($attributeContent);
-            $attribute->sync();
+            $cli->style('notice');
+            $cli->output( $node->attribute('name') . " has 'ezgmaplocation' attr.. Processing change..." );
+            $cli->style('notice-end');
+            if(!$dryRun){
+                $content = $attribute->content();
+                $attribute->setAttribute('data_type_string', 'ezleafletlocation');
+                $attribute->setContent(
+                    eZLeafletLocation::create(
+                        $content->contentobject_attribute_id,
+                        $content->contentobject_attribute_version,
+                        $content->latitude,
+                        $content->longitude,
+                        $content->street
+                    )
+                );
+                $attribute->sync();
+            }
         }
     }
 }
