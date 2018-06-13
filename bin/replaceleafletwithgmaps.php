@@ -6,7 +6,7 @@ $cli  = eZCLI::instance();
 $endl = $cli->endlineString();
 
 $script = eZScript::instance([
-        'description'    => "eZ Publish eZGmapLocation replacement with eZLeafletLocation script\n" .
+        'description'    => "eZ Publish eZLeafletLocation replacement with eZGmapLocation script\n" .
             "Replaces class and object attributes",
         'use-session'    => false,
         'use-modules'    => false,
@@ -31,7 +31,12 @@ $options = $script->getOptions(
 
 $script->initialize();
 
-$cli->notice('Starting eZGmapLocation attribute replacement with eZLeafletLocation...');
+$cli->notice('Starting eZLeafletLocation attribute replacement with eZGmapLocation...');
+
+if(!class_exists(eZGmapLocation::class)){
+    $cli->notice("This script needs 'eZGmapLocation' extension to run... quitting");
+    $script->shutdown();
+}
 
 $dryRun = $options['dry-run'];
 if ($dryRun) {
@@ -159,9 +164,9 @@ function processClass(eZContentClass $class, $dryRun, eZCLI $cli)
 {
     /** @var eZContentClassAttribute $attribute */
     foreach ($class->fetchAttributes() as $attribute) {
-        if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
+        if ($attribute->attribute('data_type_string') == 'ezleafletlocation') {
             if (! $dryRun) {
-                $attribute->setAttribute('data_type_string', 'ezleafletlocation');
+                $attribute->setAttribute('data_type_string', 'ezgmaplocation');
                 $attribute->sync();
             }
         }
@@ -177,10 +182,10 @@ function processNode(eZContentObjectTreeNode $node, $dryRun, eZCLI $cli)
 {
     /** @var eZContentObjectAttribute $attribute */
     foreach ($node->dataMap() as $attribute) {
-        if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
+        if ($attribute->attribute('data_type_string') == 'ezleafletlocation') {
             if (! $dryRun) {
                 $content = $attribute->content();
-                $attribute->setAttribute('data_type_string', 'ezleafletlocation');
+                $attribute->setAttribute('data_type_string', 'ezgmaplocation');
                 $attribute->setContent(
                     eZLeafletLocation::create(
                         $content->contentobject_attribute_id,
@@ -205,7 +210,7 @@ function checkForConcernedClass(eZContentObjectTreeNode $node)
 
     /** @var eZContentClassAttribute $attribute */
     foreach ($class->fetchAttributes() as $attribute) {
-        if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
+        if ($attribute->attribute('data_type_string') == 'ezleafletlocation') {
             $classToProcess = $class;
         }
     }
@@ -218,7 +223,7 @@ function checkForConcernedNode(eZContentObjectTreeNode $node)
     $nodeToProcess = null;
     /** @var eZContentObjectAttribute $attribute */
     foreach ($node->dataMap() as $attribute) {
-        if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
+        if ($attribute->attribute('data_type_string') == 'ezleafletlocation') {
             $nodeToProcess = $node;
         }
     }

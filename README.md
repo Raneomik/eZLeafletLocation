@@ -47,6 +47,9 @@ database documentation on how to execute queries from a command-line clients
 5.) If you wish to quickly replace your current eZGmapLocation class and object attributes, you can run this script :
 ``` extension/ezleafletlocation/bin/replacegmapswithleaflet.php ```
 
+Reversely, if you wish to step back with eZLeafletLocation class and object attributes replacement with eZGmapLocation, run this script :
+``` extension/ezleafletlocation/bin/replaceleafletswithgmap.php ```
+
 **Backup your data before using it**
 
 Use (editing)
