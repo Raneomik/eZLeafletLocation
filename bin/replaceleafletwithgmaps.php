@@ -187,7 +187,7 @@ function processNode(eZContentObjectTreeNode $node, $dryRun, eZCLI $cli)
                 $content = $attribute->content();
                 $attribute->setAttribute('data_type_string', 'ezgmaplocation');
                 $attribute->setContent(
-                    eZLeafletLocation::create(
+                    eZGmapLocation::create(
                         $content->contentobject_attribute_id,
                         $content->contentobject_version,
                         $content->latitude,
