@@ -17,12 +17,8 @@ $script = eZScript::instance([
 $script->startup();
 
 $options = $script->getOptions(
-    "[n|dry-run][no-php-verbosity][p|progress][ci:|class-id:]", [
-    'dry-run',
-    'no-php-verbosity',
-    'progress',
-    'class-id',
-], [
+    "[n|dry-run][no-php-verbosity][p|progress][ci:|class-id:]",
+    [ 'dry-run', 'no-php-verbosity', 'progress', 'class-id', ], [
     'dry-run'          => "dry run mode",
     'no-php-verbosity' => "no php verbosity",
     'progress'         => "show progress",
@@ -184,7 +180,7 @@ function processNode(eZContentObjectTreeNode $node, $dryRun, eZCLI $cli)
                 $attribute->setContent(
                     eZLeafletLocation::create(
                         $content->contentobject_attribute_id,
-                        $content->contentobject_version,
+                        $content->contentobject_attribute_version,
                         $content->latitude,
                         $content->longitude,
                         $content->street
