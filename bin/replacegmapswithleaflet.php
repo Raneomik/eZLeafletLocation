@@ -17,8 +17,8 @@ $script = eZScript::instance([
 $script->startup();
 
 $options = $script->getOptions(
-    "[n|dry-run][no-php-verbosity][p|progress][ci:|class-id:]", [
-    'dry-run','no-php-verbosity','progress','class-id'], [
+    "[n|dry-run][no-php-verbosity][p|progress][ci:|class-id:]",
+    [ 'dry-run', 'no-php-verbosity', 'progress', 'class-id', ], [
     'dry-run'          => "dry run mode",
     'no-php-verbosity' => "no php verbosity",
     'progress'         => "show progress",
@@ -28,7 +28,6 @@ $options = $script->getOptions(
 $script->initialize();
 
 $cli->notice('Starting eZGmapLocation attribute replacement with eZLeafletLocation...');
-
 
 $dryRun = $options['dry-run'];
 if ($dryRun) {
@@ -53,6 +52,8 @@ if ($options['class-id']) {
 $nodeArray        = eZContentObjectTreeNode::subTreeByNodeID($params, 1);
 $processedClasses = [];
 
+$classesToProcess = [];
+$nodesToProcess   = [];
 $total = count($nodeArray);
 $progressbar = null;
 if ($options['progress']) {
@@ -60,21 +61,16 @@ if ($options['progress']) {
     $progressbar = new ezcConsoleProgressbar($out, $total);
 }
 
-$i = 0;
+$cli->output("Calculating classes and nodes to process...");
 foreach ($nodeArray as $node) {
-    $progress = $progressbar ? "\n\n" : "[" . ++$i . " / $total] -";
+    $classToProcess = checkForConcernedClass($node);
+    if (! empty($classToProcess) && ! in_array($classToProcess, $classesToProcess)) {
+        $classesToProcess[] = $classToProcess;
+    }
 
-    $cli->output(
-        "$progress processing '" . $node->attribute('name') .
-        "' ([" . $node->attribute('class_name') . '], nodeId: ' .
-        $node->attribute('node_id') . ")"
-    );
-
-    if(!$dryRun){
-        processClass($node, $processedClasses, $dryRun, $cli);
-        processNode($node, $dryRun, $cli);
-    } else {
-        usleep(10000);
+    $nodeToProcess = checkForConcernedNode($node);
+    if (! empty($nodeToProcess)) {
+        $nodesToProcess[] = $nodeToProcess;
     }
 
     if ($progressbar) {
@@ -87,7 +83,59 @@ if ($progressbar) {
     $cli->notice($endl);
 }
 
-if (! $dryRun) {
+$classTotal  = count($classesToProcess);
+$nodeTotal   = count($nodesToProcess);
+$total       = $classTotal + $nodeTotal;
+if ($options['progress']) {
+    $out         = new ezcConsoleOutput();
+    $progressbar = new ezcConsoleProgressbar($out, $total);
+}
+
+
+$i = 0;
+
+$process = $classTotal == 0 ? "nothing to process" : '';
+$cli->output("Processing classes ..." . $process);
+
+foreach ($classesToProcess as $class) {
+    $progress = $progressbar ? "\n\n" : "[" . ++$i . " / $total] -";
+
+    $cli->output("$progress processing class '" . $class->attribute('name') . "'");
+
+    processClass($class, $dryRun, $cli);
+
+    if ($progressbar) {
+        $progressbar->advance();
+    }
+}
+
+$cli->notice($endl);
+$cli->notice($endl);
+$process = $nodeTotal== 0 ? " nothing to process" : '';
+$cli->output("Processing nodes ..." . $process);
+
+foreach ($nodesToProcess as $node) {
+    $progress = $progressbar ? "\n\n" : "[" . ++$i . " / $total] -";
+
+    $cli->output(
+        "$progress processing node '" . $node->attribute('name') .
+        "' ([" . $node->attribute('class_name') . '], nodeId: ' .
+        $node->attribute('node_id') . ")"
+    );
+
+    processNode($node, $dryRun, $cli);
+
+    if ($progressbar) {
+        $progressbar->advance();
+    }
+}
+
+if ($progressbar && $total > 0) {
+    $progressbar->finish();
+    $cli->notice($endl);
+}
+
+if (! $dryRun && $total > 0) {
     $cli->notice('Clearing cache...');
     eZCache::clearAll();
 }
@@ -96,35 +144,24 @@ $cli->notice('Done!');
 $script->shutdown();
 
 /**
- * @param eZContentObjectTreeNode $node
- * @param $processedClasses
+ * @param eZContentClass $class
  * @param $dryRun
- * @param $cli
+ * @param eZCLI $cli
  * @return null
+ * @internal param eZContentObjectTreeNode $node
+ * @internal param $processedClasses
  */
-function processClass(eZContentObjectTreeNode $node, &$processedClasses, $dryRun, eZCLI $cli)
+function processClass(eZContentClass $class, $dryRun, eZCLI $cli)
 {
-    $class_id = $node->attribute('class_identifier');
-    if (! in_array($class_id, $processedClasses)) {
-        /** @var eZContentClass $class */
-        $class = eZContentClass::fetchByIdentifier($class_id);
-
-        /** @var eZContentClassAttribute $attribute */
-        foreach ($class->fetchAttributes() as $attribute) {
-            if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
-                $cli->style('notice');
-                $cli->output( $attribute->attribute('name') . " [$class_id] has 'ezgmaplocation' attr.. Processing change..." );
-                $cli->style('notice-end');
-
-                if(! $dryRun){
-                    $attribute->setAttribute('data_type_string', 'ezleafletlocation');
-                    $attribute->sync();
-                }
+    /** @var eZContentClassAttribute $attribute */
+    foreach ($class->fetchAttributes() as $attribute) {
+        if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
+            if (! $dryRun) {
+                $attribute->setAttribute('data_type_string', 'ezleafletlocation');
+                $attribute->sync();
             }
         }
-        $processedClasses[] = $class_id;
     }
-
 }
 
 /**
@@ -137,10 +174,7 @@ function processNode(eZContentObjectTreeNode $node, $dryRun, eZCLI $cli)
     /** @var eZContentObjectAttribute $attribute */
     foreach ($node->dataMap() as $attribute) {
         if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
-            $cli->style('notice');
-            $cli->output( $node->attribute('name') . " has 'ezgmaplocation' attr.. Processing change..." );
-            $cli->style('notice-end');
-            if(!$dryRun){
+            if (! $dryRun) {
                 $content = $attribute->content();
                 $attribute->setAttribute('data_type_string', 'ezleafletlocation');
                 $attribute->setContent(
@@ -156,4 +190,33 @@ function processNode(eZContentObjectTreeNode $node, $dryRun, eZCLI $cli)
             }
         }
     }
+}
+
+
+function checkForConcernedClass(eZContentObjectTreeNode $node)
+{
+    $classToProcess = null;
+    /** @var eZContentClass $class */
+    $class = eZContentClass::fetchByIdentifier($node->attribute('class_identifier'));
+
+    /** @var eZContentClassAttribute $attribute */
+    foreach ($class->fetchAttributes() as $attribute) {
+        if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
+            $classToProcess = $class;
+        }
+    }
+    return $classToProcess;
+}
+
+
+function checkForConcernedNode(eZContentObjectTreeNode $node)
+{
+    $nodeToProcess = null;
+    /** @var eZContentObjectAttribute $attribute */
+    foreach ($node->dataMap() as $attribute) {
+        if ($attribute->attribute('data_type_string') == 'ezgmaplocation') {
+            $nodeToProcess = $node;
+        }
+    }
+    return $nodeToProcess;
 }
